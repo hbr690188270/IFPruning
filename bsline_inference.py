@@ -44,6 +44,11 @@ flags.DEFINE_integer(
     ),
     required=True,
 )
+flags.DEFINE_boolean(
+    "do_generate",
+    False,
+    help="Whether perform text generation."
+)
 
 FLAGS = flags.FLAGS
 
@@ -112,24 +117,28 @@ def main(argv):
         prefill_time = end_prefill - start_prefill
         ttft_list.append(prefill_time)
 
-        # Step 2: Full generate() (includes prefill + generation)
-        torch.cuda.synchronize()
-        start_gen = time.perf_counter()
-        _ = inference_llm.generate(
-            input_ids=input_ids,
-            generation_config=generation_config,
-        )
-        torch.cuda.synchronize()
-        end_gen = time.perf_counter()
-        total_gen_time = end_gen - start_gen
+        if FLAGS.do_generation:
+            # Step 2: Full generate() (includes prefill + generation)
+            torch.cuda.synchronize()
+            start_gen = time.perf_counter()
+            _ = inference_llm.generate(
+                input_ids=input_ids,
+                generation_config=generation_config,
+            )
+            torch.cuda.synchronize()
+            end_gen = time.perf_counter()
+            total_gen_time = end_gen - start_gen
 
-        # Step 3: Isolate generation time
-        actual_generation_time = total_gen_time - prefill_time
-        generation_time_list.append(actual_generation_time)
+            # Step 3: Isolate generation time
+            actual_generation_time = total_gen_time - prefill_time
+            generation_time_list.append(actual_generation_time)
         prog_bar.update(1)
 
     avg_ttft = np.mean(ttft_list)
-    avg_gen_time = np.mean(generation_time_list)
+    if FLAGS.do_generation:
+        avg_gen_time = np.mean(generation_time_list)
+    else:
+        avg_gen_time = 0.0
     tps = FLAGS.output_length / avg_gen_time
 
     print("Averaget TTFT: ", avg_ttft)
