@@ -14,6 +14,7 @@ from transformers import (
     GenerationConfig,
     LlamaForCausalLM,
 )
+from tqdm.auto import tqdm as auto_tqdm
 
 from src.sparsity_prediction_model import SparsityPredictor
 from src.ifpruning_config import IFPRUNING_CONFIG_V1
@@ -102,6 +103,8 @@ def main():
     sparsity_encoding_time_list = []
     FFN_param_load_time_list = []
 
+    prog_bar = auto_tqdm(range(len(input_texts)))
+
     for i, text in enumerate(input_texts):
         print(f"\n🧵 Sample {i + 1}")
         sp_input_ids = sp_tokenizer(text, padding="max_length", max_length=2000, truncation=True).input_ids
@@ -159,6 +162,7 @@ def main():
         # Step 3: Isolate generation time
         actual_generation_time = total_gen_time - prefill_time
         generation_time_list.append(actual_generation_time)
+        prog_bar.update(1)
 
     avg_ttft = np.mean(ttft_list)
     avg_gen_time = np.mean(generation_time_list)

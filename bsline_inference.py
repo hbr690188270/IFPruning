@@ -12,6 +12,7 @@ import numpy as np
 import torch
 import datasets
 from absl import app, flags
+from tqdm.auto import tqdm as auto_tqdm
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
@@ -95,8 +96,9 @@ def main(argv):
     ttft_list = []
     generation_time_list = []
 
+    prog_bar = auto_tqdm(range(len(input_texts)))
+
     for i, text in enumerate(input_texts):
-        print(f"\n🧵 Sample {i + 1}")
         input_ids = tokenizer(text, padding="max_length", max_length=2000).input_ids
 
         input_ids = torch.LongTensor(input_ids).view(1, -1).to(device)
@@ -124,6 +126,7 @@ def main(argv):
         # Step 3: Isolate generation time
         actual_generation_time = total_gen_time - prefill_time
         generation_time_list.append(actual_generation_time)
+        prog_bar.update(1)
 
     avg_ttft = np.mean(ttft_list)
     avg_gen_time = np.mean(generation_time_list)
