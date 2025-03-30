@@ -49,6 +49,7 @@ def main():
         model_name,
         torch_dtype="bfloat16",
         device_map="cpu",
+        attn_implementation="flash_attention_2",
     )
     source_model_config = AutoConfig.from_pretrained(
         model_name,

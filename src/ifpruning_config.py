@@ -2,6 +2,7 @@ from transformers.models.llama.configuration_llama import LlamaConfig
 
 # Prune 8B to 3B
 IFPRUNING_CONFIG_V1 = LlamaConfig(
+    attn_implementation="flash_attention_2",
     vocab_size=128256,
     attention_bias=False,
     attention_dropout=0.0,
