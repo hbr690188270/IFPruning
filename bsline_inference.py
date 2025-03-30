@@ -117,7 +117,7 @@ def main(argv):
         prefill_time = end_prefill - start_prefill
         ttft_list.append(prefill_time)
 
-        if FLAGS.do_generation:
+        if FLAGS.do_generate:
             # Step 2: Full generate() (includes prefill + generation)
             torch.cuda.synchronize()
             start_gen = time.perf_counter()
@@ -135,7 +135,7 @@ def main(argv):
         prog_bar.update(1)
 
     avg_ttft = np.mean(ttft_list)
-    if FLAGS.do_generation:
+    if FLAGS.do_generate:
         avg_gen_time = np.mean(generation_time_list)
     else:
         avg_gen_time = 0.0
