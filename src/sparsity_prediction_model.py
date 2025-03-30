@@ -23,9 +23,13 @@ class SparsityPredictor(nn.Module):
         self.source_llm_num_layers = num_layers
         self.source_llm_ffn_dim = ffn_dim
 
-        self.feature_extractor = Qwen2ForCausalLM.from_pretrained(hf_model_name)
+        self.feature_extractor = Qwen2ForCausalLM.from_pretrained(
+            hf_model_name,
+            torch_dtype="bfloat16",
+        )
         hidden_dim = self.feature_extractor.config.hidden_size
-        self.prediction_head = nn.Linear(hidden_dim, num_layers * ffn_dim)
+        self.prediction_head1 = nn.Linear(hidden_dim, 128)
+        self.prediction_head2 = nn.Linear(128, num_layers * ffn_dim)
         self.padding_idx = padding_idx
 
     def topk_operator(self, importance_scores: torch.Tensor, topk: float = 1536):
@@ -48,7 +52,7 @@ class SparsityPredictor(nn.Module):
 
         # 构造 mask
         mask = (importance_scores >= thresholds)
-        mask = mask.view(bsz, source_llm_num_layers, topk)
+        mask = mask.view(bsz, source_llm_num_layers, -1)
         return mask
 
     def forward(self, input_ids):
@@ -61,7 +65,9 @@ class SparsityPredictor(nn.Module):
         batch_size = input_ids.size(0)
         last_hidden_states = hidden_states[torch.arange(batch_size), last_non_pad_indices, :]
 
-        predictions = self.prediction_head(last_hidden_states)
+        intermediate = self.prediction_head1(last_hidden_states)
+        predictions = self.prediction_head2(intermediate)
+
         # batch_size, source_llm_num_layers, source_llm_ffn_dim
         ffn_importance_scores = predictions.view(batch_size, -1, self.source_llm_ffn_dim)
 

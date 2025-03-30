@@ -24,5 +24,6 @@ tensorflow/my_graph/*
 # C extensions
 *.so
 
+/scripts/
 
 
