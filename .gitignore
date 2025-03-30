@@ -25,5 +25,5 @@ tensorflow/my_graph/*
 *.so
 
 /scripts/
-
+/logs/
 
