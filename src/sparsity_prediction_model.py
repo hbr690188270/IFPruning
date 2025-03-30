@@ -7,7 +7,6 @@ class SparsityPredictor(nn.Module):
     def __init__(
         self,
         hf_model_name: str,
-        hidden_dim: int,
         num_layers: int,
         ffn_dim: int,
         padding_idx: int,
@@ -25,6 +24,7 @@ class SparsityPredictor(nn.Module):
         self.source_llm_ffn_dim = ffn_dim
 
         self.feature_extractor = Qwen2ForCausalLM.from_pretrained(hf_model_name)
+        hidden_dim = self.feature_extractor.config.hidden_size
         self.prediction_head = nn.Linear(hidden_dim, num_layers * ffn_dim)
         self.padding_idx = padding_idx
 
@@ -39,13 +39,21 @@ class SparsityPredictor(nn.Module):
         """
         bsz, source_llm_num_layers, _ = importance_scores.size()
         importance_scores = importance_scores.view(-1, importance_scores.size(-1))
-        topk_indices = torch.topk(importance_scores, dim=1, k=topk, sorted=False).indices
-        topk_indices = topk_indices.view(bsz, source_llm_num_layers, topk)
-        return topk_indices
+        # topk_indices = torch.topk(importance_scores, dim=1, k=topk, sorted=False).indices
+        # topk_indices = topk_indices.view(bsz, source_llm_num_layers, topk)
+        # return topk_indices
+
+        topk_vals = torch.topk(importance_scores, k=topk, dim=1).values
+        thresholds = topk_vals[:, -1].unsqueeze(1)
+
+        # 构造 mask
+        mask = (importance_scores >= thresholds)
+        mask = mask.view(bsz, source_llm_num_layers, topk)
+        return mask
 
     def forward(self, input_ids):
-        outputs = self.feature_extractor(input_ids=input_ids)
-        hidden_states = outputs.hidden_states
+        outputs = self.feature_extractor(input_ids=input_ids, output_hidden_states=True)
+        hidden_states = outputs.hidden_states[-1]
 
         non_pad_mask = input_ids != self.padding_idx
         last_non_pad_indices = non_pad_mask.sum(dim=1) - 1
@@ -57,7 +65,7 @@ class SparsityPredictor(nn.Module):
         # batch_size, source_llm_num_layers, source_llm_ffn_dim
         ffn_importance_scores = predictions.view(batch_size, -1, self.source_llm_ffn_dim)
 
-        ffn_selected_indices = self.topk_operator(ffn_importance_scores)
-        return ffn_selected_indices
+        ffn_selection_mask = self.topk_operator(ffn_importance_scores)
+        return ffn_selection_mask
 
 
