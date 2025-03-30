@@ -26,6 +26,7 @@ class SparsityPredictor(nn.Module):
         self.feature_extractor = Qwen2ForCausalLM.from_pretrained(
             hf_model_name,
             torch_dtype="bfloat16",
+            attn_implementation="flash_attention_2",
         )
         hidden_dim = self.feature_extractor.config.hidden_size
         self.prediction_head1 = nn.Linear(hidden_dim, 128)

@@ -104,7 +104,7 @@ def main(argv):
     prog_bar = auto_tqdm(range(len(input_texts)))
 
     for i, text in enumerate(input_texts):
-        input_ids = tokenizer(text, padding="max_length", max_length=2000).input_ids
+        input_ids = tokenizer(text, padding="max_length", max_length=FLAGS.input_length, truncation=True).input_ids
 
         input_ids = torch.LongTensor(input_ids).view(1, -1).to(device)
 
@@ -152,7 +152,7 @@ def main(argv):
         "output_length": FLAGS.output_length,
         "ttft": avg_ttft,
         "generation_time": avg_gen_time,
-        "tps": FLAGS.output_length / avg_gen_time,
+        "tps": tps,
     }
 
     # Check if the file exists to decide whether to write header

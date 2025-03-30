@@ -34,10 +34,16 @@ flags.DEFINE_integer(
     ),
     required=True,
 )
+flags.DEFINE_boolean(
+    "do_generate",
+    False,
+    help="Whether perform text generation."
+)
+
 
 FLAGS = flags.FLAGS
 
-def main():
+def main(argv):
     csv_file = "logs/IFPruning.csv"
 
     device = torch.device("cuda")
@@ -76,6 +82,8 @@ def main():
     ).bfloat16().to(device)
     inference_llm.load_state_dict(other_param_dict, strict=False)
 
+    inference_llm.requires_grad_(False)
+
     sparsity_predictor_model_name = "Qwen/Qwen2.5-0.5B"
     sparsity_predictor = SparsityPredictor(
         hf_model_name=sparsity_predictor_model_name,
@@ -83,12 +91,13 @@ def main():
         ffn_dim=source_model_config.intermediate_size,
         padding_idx=128004,
     ).bfloat16().to(device)
+    sparsity_predictor.requires_grad_(False)
     total_params = sum(p.numel() for p in sparsity_predictor.parameters())
     print(f"Total parameters of sparsity_predictor: {total_params:,}")
 
     sp_tokenizer = AutoTokenizer.from_pretrained(sparsity_predictor_model_name)
     dataset = datasets.load_dataset("google/IFEval")["train"]
-    input_texts: List[str] = dataset["prompt"]
+    input_texts: List[str] = dataset["prompt"][:100]
 
     generation_config = GenerationConfig(
         do_sample=False,
@@ -106,9 +115,8 @@ def main():
     prog_bar = auto_tqdm(range(len(input_texts)))
 
     for i, text in enumerate(input_texts):
-        print(f"\n🧵 Sample {i + 1}")
-        sp_input_ids = sp_tokenizer(text, padding="max_length", max_length=2000, truncation=True).input_ids
-        input_ids = tokenizer(text, padding="max_length", max_length=2000, truncation=True).input_ids
+        sp_input_ids = sp_tokenizer(text, padding="max_length", max_length=FLAGS.input_length, truncation=True).input_ids
+        input_ids = tokenizer(text, padding="max_length", max_length=FLAGS.input_length, truncation=True).input_ids
 
         sp_input_ids = torch.LongTensor(sp_input_ids).view(1, -1).to(device)
         input_ids = torch.LongTensor(input_ids).view(1, -1).to(device)
@@ -121,7 +129,6 @@ def main():
         selection_mask: torch.Tensor = sparsity_predictor(sp_input_ids)[0]
         torch.cuda.synchronize()
         end = time.perf_counter()
-        print(f"🔍 Sparsity prediction time: {end - start:.4f}s")
         sparsity_encoding_time_list.append(end - start)
 
         # Step 2: Load pruned FFN weights
@@ -149,24 +156,29 @@ def main():
         prefill_time = end_prefill - start_prefill
         ttft_list.append(prefill_time)
 
-        torch.cuda.synchronize()
-        start_gen = time.perf_counter()
-        _ = inference_llm.generate(
-            input_ids=input_ids,
-            generation_config=generation_config,
-        )
-        torch.cuda.synchronize()
-        end_gen = time.perf_counter()
-        total_gen_time = end_gen - start_gen
+        if FLAGS.do_generate:
+            torch.cuda.synchronize()
+            start_gen = time.perf_counter()
+            _ = inference_llm.generate(
+                input_ids=input_ids,
+                generation_config=generation_config,
+            )
+            torch.cuda.synchronize()
+            end_gen = time.perf_counter()
+            total_gen_time = end_gen - start_gen
 
-        # Step 3: Isolate generation time
-        actual_generation_time = total_gen_time - prefill_time
-        generation_time_list.append(actual_generation_time)
+            # Step 3: Isolate generation time
+            actual_generation_time = total_gen_time - prefill_time
+            generation_time_list.append(actual_generation_time)
         prog_bar.update(1)
 
     avg_ttft = np.mean(ttft_list)
-    avg_gen_time = np.mean(generation_time_list)
-    tps = FLAGS.output_length / avg_gen_time
+    if FLAGS.do_generate:
+        avg_gen_time = np.mean(generation_time_list)
+        tps = FLAGS.output_length / avg_gen_time
+    else:
+        avg_gen_time = 0.0
+        tps = 0.0
     avg_param_loading_time = np.mean(FFN_param_load_time_list)
     avg_mask_generation_time = np.mean(sparsity_encoding_time_list)
 
@@ -182,7 +194,7 @@ def main():
         "output_length": FLAGS.output_length,
         "ttft": avg_ttft,
         "generation_time": avg_gen_time,
-        "tps": FLAGS.output_length / avg_gen_time,
+        "tps": tps,
         "mask generation": avg_mask_generation_time,
         "param loading": avg_param_loading_time,
     }
@@ -201,6 +213,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    app.run(main)
 
 
