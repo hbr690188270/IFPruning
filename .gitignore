@@ -1,0 +1,28 @@
+/aux_files/
+/discard/
+/model_outputs/
+/mt_outputs/
+/sacreblue_cache/
+
+**/*.pt
+**/checkpoints
+**/wget-log
+**/_build/
+**/*.ckpt
+**/outputs
+**/*.tar.gz
+**/playground
+**/wandb
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+dataset/*
+tensorflow/my_graph/*
+.idea/
+# C extensions
+*.so
+
+
+
