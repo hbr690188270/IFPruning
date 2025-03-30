@@ -137,9 +137,10 @@ def main(argv):
     avg_ttft = np.mean(ttft_list)
     if FLAGS.do_generate:
         avg_gen_time = np.mean(generation_time_list)
+        tps = FLAGS.output_length / avg_gen_time
     else:
         avg_gen_time = 0.0
-    tps = FLAGS.output_length / avg_gen_time
+        tps = 0.0
 
     print("Averaget TTFT: ", avg_ttft)
     print("Averaget generation time: ", avg_gen_time)

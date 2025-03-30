@@ -35,6 +35,7 @@ IFPRUNING_CONFIG_V1 = LlamaConfig(
 )
 
 SOURCE_LLM_CONFIG = LlamaConfig(
+    attn_implementation="flash_attention_2",
     vocab_size=128256,
     attention_bias=False,
     attention_dropout=0.0,
