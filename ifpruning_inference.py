@@ -37,7 +37,7 @@ flags.DEFINE_integer(
 FLAGS = flags.FLAGS
 
 def main():
-    csv_file = f"logs/IFPruning_input{FLAGS.input_length}_output{FLAGS.output_length}.csv"
+    csv_file = "logs/IFPruning.csv"
 
     device = torch.device("cuda")
     model_name = "meta-llama/Llama-3.1-8B"

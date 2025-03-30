@@ -1,0 +1,2 @@
+input_length,output_length,ttft,generation_time,tps
+2000,200,0.16228618878871204,5.1505577365309,38.83074615035919

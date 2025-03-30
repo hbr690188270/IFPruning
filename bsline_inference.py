@@ -47,7 +47,7 @@ flags.DEFINE_integer(
 FLAGS = flags.FLAGS
 
 def main(argv):
-    csv_file = f"logs/{FLAGS.eval_model_name}_input{FLAGS.input_length}_output{FLAGS.output_length}.csv"
+    csv_file = f"logs/{FLAGS.eval_model_name}.csv"
     print(f"Save the logs to {csv_file}")
 
     device = torch.device("cuda")
