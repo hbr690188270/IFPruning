@@ -78,16 +78,15 @@ def main(argv):
             llm_config,
         ).bfloat16().to(device)
     elif FLAGS.eval_model_name == "moe":
-        model_name = "deepseek-ai/deepseek-moe-16b-base"
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model_name = "Qwen/Qwen1.5-MoE-A2.7B"
+        tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
         inference_llm = AutoModelForCausalLM.from_pretrained(
             model_name,
             torch_dtype=torch.bfloat16,
             device_map="auto",
             attn_implementation="flash_attention_2",
+            trust_remote_code=True,
         )
-        inference_llm.generation_config = GenerationConfig.from_pretrained(model_name)
-        inference_llm.generation_config.pad_token_id = inference_llm.generation_config.eos_token_id
 
     else:
         raise ValueError()
@@ -107,7 +106,7 @@ def main(argv):
     print(f"Total parameters: {total_params:,}")
 
     dataset = datasets.load_dataset("google/IFEval")["train"]
-    input_texts: List[str] = dataset["prompt"][:100]
+    input_texts: List[str] = dataset["prompt"][:110]
 
     ttft_list = []
     generation_time_list = []
@@ -145,9 +144,9 @@ def main(argv):
             generation_time_list.append(actual_generation_time)
         prog_bar.update(1)
 
-    avg_ttft = np.mean(ttft_list)
+    avg_ttft = np.mean(ttft_list[10:])
     if FLAGS.do_generate:
-        avg_gen_time = np.mean(generation_time_list)
+        avg_gen_time = np.mean(generation_time_list[10:])
         tps = FLAGS.output_length / avg_gen_time
     else:
         avg_gen_time = 0.0

@@ -99,7 +99,7 @@ def main(argv):
 
     sp_tokenizer = AutoTokenizer.from_pretrained(sparsity_predictor_model_name)
     dataset = datasets.load_dataset("google/IFEval")["train"]
-    input_texts: List[str] = dataset["prompt"][:100]
+    input_texts: List[str] = dataset["prompt"][:110]
 
     generation_config = GenerationConfig(
         do_sample=True,
@@ -175,15 +175,15 @@ def main(argv):
             generation_time_list.append(actual_generation_time)
         prog_bar.update(1)
 
-    avg_ttft = np.mean(ttft_list)
+    avg_ttft = np.mean(ttft_list[10:])
     if FLAGS.do_generate:
-        avg_gen_time = np.mean(generation_time_list)
+        avg_gen_time = np.mean(generation_time_list[10:])
         tps = FLAGS.output_length / avg_gen_time
     else:
         avg_gen_time = 0.0
         tps = 0.0
-    avg_param_loading_time = np.mean(FFN_param_load_time_list)
-    avg_mask_generation_time = np.mean(sparsity_encoding_time_list)
+    avg_param_loading_time = np.mean(FFN_param_load_time_list[10:])
+    avg_mask_generation_time = np.mean(sparsity_encoding_time_list[10:])
 
     print("Averaget TTFT: ", avg_ttft)
     print("Averaget generation time: ", avg_gen_time)
