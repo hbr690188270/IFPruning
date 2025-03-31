@@ -26,4 +26,4 @@ tensorflow/my_graph/*
 
 /scripts/
 /logs/
-
+/job_logs/

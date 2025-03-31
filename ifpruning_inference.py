@@ -81,8 +81,10 @@ def main(argv):
         llm_config,
     ).bfloat16().to(device)
     inference_llm.load_state_dict(other_param_dict, strict=False)
-
     inference_llm.requires_grad_(False)
+
+    del other_param_dict
+    torch.cuda.empty_cache()
 
     sparsity_predictor_model_name = "Qwen/Qwen2.5-0.5B"
     sparsity_predictor = SparsityPredictor(
