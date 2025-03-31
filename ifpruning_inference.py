@@ -102,10 +102,11 @@ def main(argv):
     input_texts: List[str] = dataset["prompt"][:100]
 
     generation_config = GenerationConfig(
-        do_sample=False,
+        do_sample=True,
         max_new_tokens=FLAGS.output_length,
         min_new_tokens=FLAGS.output_length,
         eos_token_id=None,
+        num_return_sequences=4,
     )
 
 
