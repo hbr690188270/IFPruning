@@ -86,7 +86,7 @@ def main(argv):
             device_map="auto",
             attn_implementation="flash_attention_2",
             trust_remote_code=True,
-        )
+        ).to(device)
 
     else:
         raise ValueError()
